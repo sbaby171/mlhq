@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from .backends.base import Backend
 from .backends.openai_backend import OpenAIBackend
+from .backends.hf_backend import HFLocalBackend
 
 @dataclass
 class ClientConfig:
@@ -12,6 +13,7 @@ class ClientConfig:
     base_url: Optional[str] = None
     organization: Optional[str] = None
     project: Optional[str] = None
+    model: Optional[str] = None # NOTE needed for HFLocal HFClient 
 
 class Client:
     """
@@ -35,12 +37,21 @@ class Client:
                 organization=cfg.organization,
                 project=cfg.project,
             )
+            self.responses = self._backend.responses
+            self.chat = self._backend.chat
+        elif cfg.backend == "hflocal": 
+            self._backend = HFLocalBackend(
+                model = cfg.model,
+            )
         else:
             raise ValueError(f"Unsupported backend: {cfg.backend!r}")
+        # TODO: note that witin each backend we are remapping the method
+        # access up from the backend to the self. we need to normalize 
+        # these other simply get the HFFace Local and Infereclient up 
+        # to the OpenAI standard. 
 
-        # Re-expose provider namespaces
-        self.responses = self._backend.responses
-        self.chat = self._backend.chat
+
+        self.text_generation = self._backend.text_generation
 
     @property
     def config(self) -> ClientConfig:
