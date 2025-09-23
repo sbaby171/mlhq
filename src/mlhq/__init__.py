@@ -1,6 +1,7 @@
-from .client import Client
+from .client import Client, ClientConfig
+from .types import MLHQResponse
 
-__all__ = ["Client", "__version__", "hello"]
+__all__ = ["Client", "ClientConfig", "MLHQResponse", "__version__", "hello"]
 
 __version__ = "0.1.0"
 

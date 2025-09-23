@@ -1,3 +1,4 @@
 # Runtime requirements for mlhq. Keep minimal.
 numpy>=1.26
+openai==1.108.2
 

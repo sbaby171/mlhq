@@ -20,9 +20,7 @@ classifiers = [
 ]
 
 # Runtime dependencies (keep minimal; add as needed)
-dependencies = [
-  # "numpy>=1.26",
-]
+dependencies = ["openai>=1.50.0"]
 
 [project.optional-dependencies]
 dev = [
