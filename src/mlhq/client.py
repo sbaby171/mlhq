@@ -6,6 +6,9 @@ from .backends.base import Backend
 from .backends.openai_backend import OpenAIBackend
 from .backends.hf_backend import HFLocalBackend
 
+from mlhq.logging_config import get_logger
+logger = get_logger(__name__)
+
 @dataclass
 class ClientConfig:
     backend: str = "openai"
@@ -27,6 +30,7 @@ class Client:
     chat: Any
 
     def __init__(self, *, backend: str = "openai", **kwargs: Any) -> None:
+        logger.debug("Initializing MLHQ Client")
         cfg = ClientConfig(backend=backend, **kwargs)
         self._cfg = cfg
 

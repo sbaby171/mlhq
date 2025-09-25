@@ -1,13 +1,23 @@
 from __future__ import annotations                                                                                                        
 from typing import Any, Optional, Dict 
-from .base import Backend
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, TextIteratorStreamer
 
 
 
+
+from .base import Backend
+#from mlhq.logging_config import get_logger
+from mlhq.logging_config import get_logger
+
+# Get logger for this module
+logger = get_logger(__name__)
+
+
+
 class HFLocalClient:                                                            
     def __init__(self, model_name, api_key=""): 
+        logger.debug("Initializing HuggingFace backend")
         #self.logger = logging.getLogger(f"{__name__}.HFLocalClient")            
         #self.logger.info(f"Initializing HFLocalClient with model_name={model_name}")
         print(f"Initializing HFLocalClient with model_name={model_name}")

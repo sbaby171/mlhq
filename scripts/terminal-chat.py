@@ -1,9 +1,19 @@
 import os, sys, re, argparse, time, threading
+from pyfiglet import Figlet
 from datetime import datetime 
 import itertools
+
+# Add the src directory to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+
 from mlhq import Client
+from mlhq.logging_config import setup_logging, get_logger
+
 DEFAULT_MODEL = "qwen/Qwen2.5-0.5B"
 DEFAULT_MAX_NEW_TOKENS = 128
+
+
 
 class Colors:
     # Text colors
@@ -82,14 +92,18 @@ class TerminalChat:
         os.system('cls' if os.name == 'nt' else 'clear')
     
     def print_header(self):
-        header = f"""
-{Colors.BRIGHT_CYAN}╔══════════════════════════════════════════════════════════╗
-║                     🤖 AI CHAT TERMINAL                  ║
-║                                                          ║
-║              {Colors.BRIGHT_WHITE}Welcome to your AI Assistant{Colors.BRIGHT_CYAN}                ║
-╚══════════════════════════════════════════════════════════╝{Colors.RESET}
-"""
-        print(header)
+        #header = f"""
+#{Colors.BRIGHT_CYAN}╔══════════════════════════════════════════════════════════╗
+#║                     🤖 AI CHAT TERMINAL                  ║
+#║                                                          ║
+#║              {Colors.BRIGHT_WHITE}Welcome to your AI Assistant{Colors.BRIGHT_CYAN}                ║
+#╚══════════════════════════════════════════════════════════╝{Colors.RESET}
+#"""
+
+        print("─" * 60)
+        figlet = Figlet()
+        print(figlet.renderText("MLHQ tChat"))
+        #print(header)
         print(f"{Colors.DIM}Type 'quit', 'exit', or 'bye' to leave the chat{Colors.RESET}")
         print(f"{Colors.DIM}Type 'clear' to clear the chat history{Colors.RESET}")
         print("─" * 60)
@@ -155,7 +169,7 @@ class TerminalChat:
 """
         print(goodbye)
     
-    def run(self, max_new_tokens=DEFAULT_MAX_NEW_TOKENS):
+    def run(self, client, max_new_tokens=DEFAULT_MAX_NEW_TOKENS):
         #self.clear_screen()
         self.print_header()
         
@@ -196,6 +210,11 @@ def __handle_cli_args():
     parser.add_argument('-b', '--backend', type=str, required=True)
     parser.add_argument('-m', '--model', type=str, default=DEFAULT_MODEL)
     parser.add_argument("--max-new-tokens", type=int, default=DEFAULT_MAX_NEW_TOKENS)
+    parser.add_argument('--log-level', default='INFO',
+        #choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        choices=['debug', 'info', 'warning', 'error', 'critical'],
+        help='Set the logging level'
+    )
     args = parser.parse_args()
     return args
 
@@ -204,12 +223,14 @@ if __name__ == "__main__":
     backend = args.backend
     model   = args.model
 
-
+    setup_logging(args.log_level)
+    logger = get_logger(__name__)
+    logger.info(f"Starting terminal chat with log level: {args.log_level}")
+    
     if backend == "hflocal": 
         client = Client(backend=backend, model=model) 
 
-
     chat = TerminalChat()
-    chat.run(max_new_tokens=args.max_new_tokens)
+    chat.run(client=client, max_new_tokens=args.max_new_tokens)
     
 
