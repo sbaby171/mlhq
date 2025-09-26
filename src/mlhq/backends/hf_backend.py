@@ -22,8 +22,8 @@ class HFLocalClient:
         #self.logger.info(f"Initializing HFLocalClient with model_name={model_name}")
         print(f"Initializing HFLocalClient with model_name={model_name}")
         self.model_name = model_name                                            
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)              
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)           
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name,local_files_only=True) 
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, local_files_only=True) 
                                                                                 
         if torch.cuda.is_available():                                           
             self.device = "cuda"                                                
