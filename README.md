@@ -1,9 +1,8 @@
 # mlhq
 MLHQ Agent Library
 
----
 
-# Installation
+## Installation
 
 ``` shell
 git clone git@github.com:sbaby171/mlhq.git 
