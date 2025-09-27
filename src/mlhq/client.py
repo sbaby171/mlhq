@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Any
 from dataclasses import dataclass
+import json 
 
 from .backends.base import Backend
 from .backends.openai_backend import OpenAIBackend
@@ -11,12 +12,26 @@ logger = get_logger(__name__)
 
 @dataclass
 class ClientConfig:
-    backend: str = "openai"
-    api_key: Optional[str] = None
-    base_url: Optional[str] = None
-    organization: Optional[str] = None
-    project: Optional[str] = None
-    model: Optional[str] = None # NOTE needed for HFLocal HFClient 
+
+    def __init__(self, config=None,
+            backend: str = "openai",
+            api_key: Optional[str] = None, 
+            base_url: Optional[str] = None,
+            organization: Optional[str] = None,
+            project: Optional[str] = None,
+            model: Optional[str] = None # NOTE needed for HFLocal HFClient 
+        ): 
+        config_data = {} 
+        if config: 
+            with open(config, 'r') as f:
+                config_data = json.load(f)
+            logger.debug(f"Config fields: {config_data}")
+
+        for k,v in config_data.items(): 
+            self.__dict__[k] = v 
+       
+        if "api_key" not in self.__dict__: 
+            self.api_key = "abc123"
 
 class Client:
     """
@@ -29,9 +44,11 @@ class Client:
     responses: Any
     chat: Any
 
-    def __init__(self, *, backend: str = "openai", **kwargs: Any) -> None:
-        logger.debug("Initializing MLHQ Client")
-        cfg = ClientConfig(backend=backend, **kwargs)
+    def __init__(self, **kwargs):
+        logger.info(f"Initializing MLHQ Client : {kwargs}")
+
+        cfg = ClientConfig(**kwargs)
+
         self._cfg = cfg
 
         if cfg.backend == "openai":

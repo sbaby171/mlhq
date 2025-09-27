@@ -40,11 +40,9 @@ class HFLocalClient:
         if "stop" in kwargs:                                                    
             kwargs["stop_strings"] = kwargs["stop"]                             
             del kwargs["stop"]                                                  
-        #self.logger.info(f"Text-generation kwargs: {kwargs}")                   
+        logger.debug(f"Text-generation kwargs: {kwargs}")                   
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)    
-        
-        print(f"DEBUG: Tokenized Input: {inputs}")
-
+        #print(f"DEBUG: Tokenized Input: {inputs}")
         gen_kwargs = {                                                          
             "input_ids": inputs.input_ids,                                      
             "attention_mask": inputs.attention_mask,                            
