@@ -207,9 +207,10 @@ class TerminalChat:
 
 def __handle_cli_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', '--backend', type=str, required=True)
+    parser.add_argument('-b', '--backend', type=str)
     parser.add_argument('-m', '--model', type=str, default=DEFAULT_MODEL)
     parser.add_argument("--max-new-tokens", type=int, default=DEFAULT_MAX_NEW_TOKENS)
+    parser.add_argument("-c", "--config", type=str, help="MLHQ Client Config file", default={})
     parser.add_argument('--log-level', default='INFO',
         #choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         choices=['debug', 'info', 'warning', 'error', 'critical'],
@@ -222,12 +223,17 @@ if __name__ == "__main__":
     args = __handle_cli_args()
     backend = args.backend
     model   = args.model
+    config = args.config
 
     setup_logging(args.log_level)
     logger = get_logger(__name__)
     logger.info(f"Starting terminal chat with log level: {args.log_level}")
     
-    if backend == "hflocal": 
+    if config: 
+        logger.info(f"Config path provided: {config}")
+        client = Client(config=config) 
+
+    elif backend == "hflocal": 
         client = Client(backend=backend, model=model) 
 
     chat = TerminalChat()

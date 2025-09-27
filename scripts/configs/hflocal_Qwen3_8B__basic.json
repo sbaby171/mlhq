@@ -1,0 +1,4 @@
+{
+    "backend":"hflocal",
+    "model":"qwen/Qwen3-8B"
+}
