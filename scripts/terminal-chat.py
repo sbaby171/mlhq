@@ -2,6 +2,11 @@ import os, sys, re, argparse, time, threading
 from pyfiglet import Figlet
 from datetime import datetime 
 import itertools
+import importlib.util
+import sys
+from pathlib import Path
+            
+from textwrap import dedent
 
 # Add the src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -10,10 +15,29 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from mlhq import Client
 from mlhq.logging_config import setup_logging, get_logger
 
-DEFAULT_MODEL = "qwen/Qwen2.5-0.5B"
+DEFAULT_MODEL = "qwen/Qwen3-8B"
 DEFAULT_MAX_NEW_TOKENS = 128
-
-
+DEFAULT_TOOLS = "/Users/msbabo/code/mlhq/tools/weather_apis.py" 
+def load_tools_from_file(file_path):
+    """Load a Python file and return the module object."""
+    file_path = Path(file_path)
+    
+    if not file_path.exists():
+        raise FileNotFoundError(f"Tools file not found: {file_path}")
+    
+    if not file_path.suffix == '.py':
+        raise ValueError(f"File must be a Python file (.py): {file_path}")
+    
+    # Create a module spec from the file
+    spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load spec from {file_path}")
+    
+    # Create and execute the module
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    
+    return module
 
 class Colors:
     # Text colors
@@ -169,9 +193,11 @@ class TerminalChat:
 """
         print(goodbye)
     
-    def run(self, client, max_new_tokens=DEFAULT_MAX_NEW_TOKENS):
+    def run(self, client, tools=[], max_new_tokens=DEFAULT_MAX_NEW_TOKENS):
         #self.clear_screen()
         self.print_header()
+
+        cycles = 0
         
         while True:
             user_input = self.get_user_input()
@@ -190,29 +216,44 @@ class TerminalChat:
             # Display user message
             self.print_user_message(user_input)
             
-            # Show AI thinking
-            self.simulate_ai_thinking()
+            #self.simulate_ai_thinking()
             
             # Get and display AI response
             #ai_response = self.get_ai_response(user_input)
-            ai_response = client.text_generation(user_input, max_new_tokens=max_new_tokens)
+            # client.messages
+            system_prompt = dedent("""You are a helpful weather agent. Users typically 
+ask you the weather of a place and time. Pay careful attention to the location they ask for -- 
+its really bad to get the wrong place. Also, assume Celsius if they don't explicity ask for fahrenheit.""")
+            messages = [
+                 {"role":"system", "content": system_prompt},
+                 {"role":"user", "content": user_input}
+            ]
+
+            spinner = LoadingSpinner("AI is thinking")
+
+            spinner.start()
+            #ai_response = client.text_generation(user_input, tools=tools, max_new_tokens=max_new_tokens)
+            ai_response = client.text_generation(messages, tools=tools, max_new_tokens=max_new_tokens)
+            spinner.stop()
+
             self.print_ai_message(ai_response)
-            
+
             # Store in history
             self.chat_history.append({
                 'user': user_input,
                 'ai': ai_response,
                 'timestamp': datetime.now()
             })
+            cycles += 1
 
 def __handle_cli_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--backend', type=str)
     parser.add_argument('-m', '--model', type=str, default=DEFAULT_MODEL)
+    parser.add_argument('-t', '--tools', type=str, default=DEFAULT_TOOLS, help="Path to tools file (python)")
     parser.add_argument("--max-new-tokens", type=int, default=DEFAULT_MAX_NEW_TOKENS)
     parser.add_argument("-c", "--config", type=str, help="MLHQ Client Config file", default={})
     parser.add_argument('--log-level', default='INFO',
-        #choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         choices=['debug', 'info', 'warning', 'error', 'critical'],
         help='Set the logging level'
     )
@@ -220,23 +261,46 @@ def __handle_cli_args():
     return args
 
 if __name__ == "__main__":
+
     args = __handle_cli_args()
     backend = args.backend
     model   = args.model
     config = args.config
+    tools = args.tools
 
     setup_logging(args.log_level)
     logger = get_logger(__name__)
     logger.info(f"Starting terminal chat with log level: {args.log_level}")
+
+
+    tools_list = None 
+    tools_module = None 
+    if tools: 
+        try:
+            #if os.path.isdir(tools): # load all tools 
+            tools_module = load_tools_from_file(tools)
+            if hasattr(tools_module, 'TOOLS'):
+                tools_list = tools_module.TOOLS
+                print(f"Loaded {len(tools)} tools from {tools_list}")
+                # Use with your tokenizer
+                # tokenizer.apply_chat_template(messages, tools, ...)
+            else:
+                print("Warning: No 'TOOLS' attribute found in the module")
+            # You can also access other functions/variables from the module
+            # my_function = tools_module.my_function
+        except Exception as e:
+            print(f"Error loading tools file: {e}")
+            sys.exit(1)
+        print(f"Tools module: {tools_module}")
     
     if config: 
         logger.info(f"Config path provided: {config}")
-        client = Client(config=config) 
+        client = Client(config=config) # Config to have system_prompt and tools?  
 
     elif backend == "hflocal": 
         client = Client(backend=backend, model=model) 
 
     chat = TerminalChat()
-    chat.run(client=client, max_new_tokens=args.max_new_tokens)
+    chat.run(client=client, tools = tools_list, max_new_tokens=args.max_new_tokens)
     
 
