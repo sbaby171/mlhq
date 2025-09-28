@@ -129,6 +129,7 @@ class HFLocalClient:
     # NOTE: Because the tools has is separately provided to the appy_chat_template
     # we need to pass it in as a separate arg here. 
     def text_generation(self, messages, tools=[], **kwargs):   
+        func = "HFLocal.text_generation"
 
         if "stop" in kwargs:                                                    
             kwargs["stop_strings"] = kwargs["stop"]                             
@@ -160,6 +161,8 @@ class HFLocalClient:
         #kwargs.update(gen_kwargs)
 
         response = self.model.generate(**inputs, **kwargs) 
+        print(f"\nDEBUG: [{func}]: Raw Response (length={len(response[0][inputs.input_ids.shape[1]:-1])}): {response}")
+ 
         #self.logger.info(f"Incoming/Outgoing text: {self.tokenizer.decode(response[0])}")
         return self.tokenizer.decode(response[0][inputs.input_ids.shape[1]:-1]) 
 

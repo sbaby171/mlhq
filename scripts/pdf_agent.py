@@ -2,6 +2,25 @@ import sys
 from textwrap import dedent 
 from mlhq import Client
 from mlhq.tooling import load_tools_from_file
+import re
+import json
+# ----------------------------------------------------------------------------:
+def extract_all_tool_calls(text):
+    """Extract all tool_call sections from the text."""
+    pattern = r'<tool_call>\s*(.*?)\s*</tool_call>'
+    matches = re.findall(pattern, text, re.DOTALL)
+    
+    tool_calls = []
+    for match in matches:
+        try:
+            tool_call_data = json.loads(match.strip())
+            tool_calls.append(tool_call_data)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON: {e}")
+            tool_calls.append(match.strip())  # Keep raw content if parsing fails
+    
+    return tool_calls
+# ----------------------------------------------------------------------------:
 
 
 # Configuration stuff
@@ -45,3 +64,6 @@ response = client.text_generation(
 
 
 print(response)
+
+func_list = extract_all_tool_calls(response)
+print(f"Function list: {func_list}")
