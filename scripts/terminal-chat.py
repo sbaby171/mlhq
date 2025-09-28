@@ -11,13 +11,13 @@ from textwrap import dedent
 # Add the src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-
 from mlhq import Client
 from mlhq.logging_config import setup_logging, get_logger
 
 DEFAULT_MODEL = "qwen/Qwen3-8B"
 DEFAULT_MAX_NEW_TOKENS = 128
 DEFAULT_TOOLS = "/Users/msbabo/code/mlhq/tools/weather_apis.py" 
+
 def load_tools_from_file(file_path):
     """Load a Python file and return the module object."""
     file_path = Path(file_path)
@@ -36,7 +36,6 @@ def load_tools_from_file(file_path):
     # Create and execute the module
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    
     return module
 
 class Colors:
