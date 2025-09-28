@@ -143,7 +143,7 @@ class HFLocalClient:
         #    tokenize=False,
         #    add_generation_prompt=True
         #).to(self.device)
-        inputs = tokenizer.apply_chat_template(                                         
+        inputs = self.tokenizer.apply_chat_template(                                         
             messages,                                                               
             tools = tools, 
             add_generation_prompt=True,                                             
