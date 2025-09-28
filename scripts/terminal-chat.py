@@ -2,6 +2,9 @@ import os, sys, re, argparse, time, threading
 from pyfiglet import Figlet
 from datetime import datetime 
 import itertools
+import importlib.util
+import sys
+from pathlib import Path
 
 # Add the src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -10,10 +13,29 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from mlhq import Client
 from mlhq.logging_config import setup_logging, get_logger
 
-DEFAULT_MODEL = "qwen/Qwen2.5-0.5B"
+DEFAULT_MODEL = "qwen/Qwen3-8B"
 DEFAULT_MAX_NEW_TOKENS = 128
-
-
+DEFAULT_TOOLS = "/Users/msbabo/code/mlhq/tools/weather_apis.py" 
+def load_tools_from_file(file_path):
+    """Load a Python file and return the module object."""
+    file_path = Path(file_path)
+    
+    if not file_path.exists():
+        raise FileNotFoundError(f"Tools file not found: {file_path}")
+    
+    if not file_path.suffix == '.py':
+        raise ValueError(f"File must be a Python file (.py): {file_path}")
+    
+    # Create a module spec from the file
+    spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load spec from {file_path}")
+    
+    # Create and execute the module
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    
+    return module
 
 class Colors:
     # Text colors
@@ -195,6 +217,11 @@ class TerminalChat:
             
             # Get and display AI response
             #ai_response = self.get_ai_response(user_input)
+            # client.messages
+            # messages = [
+            #     "role":"system", "content": system_prompt,
+            #     "role":"user", "content": prompt
+            # ]
             ai_response = client.text_generation(user_input, max_new_tokens=max_new_tokens)
             self.print_ai_message(ai_response)
             
@@ -209,10 +236,10 @@ def __handle_cli_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--backend', type=str)
     parser.add_argument('-m', '--model', type=str, default=DEFAULT_MODEL)
+    parser.add_argument('-t', '--tools', type=str, default=DEFAULT_TOOLS, help="Path to tools file (python)")
     parser.add_argument("--max-new-tokens", type=int, default=DEFAULT_MAX_NEW_TOKENS)
     parser.add_argument("-c", "--config", type=str, help="MLHQ Client Config file", default={})
     parser.add_argument('--log-level', default='INFO',
-        #choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         choices=['debug', 'info', 'warning', 'error', 'critical'],
         help='Set the logging level'
     )
@@ -224,6 +251,30 @@ if __name__ == "__main__":
     backend = args.backend
     model   = args.model
     config = args.config
+    tools = args.tools
+
+
+    if tools: 
+        tools_module = None 
+        try:
+            #if os.path.isdir(tools): # load all tools 
+            tools_module = load_tools_from_file(tools)
+            if hasattr(tools_module, 'TOOLS'):
+                tools_list = tools_module.TOOLS
+                print(f"Loaded {len(tools)} tools from {tools_list}")
+                # Use with your tokenizer
+                # tokenizer.apply_chat_template(messages, tools, ...)
+            else:
+                print("Warning: No 'TOOLS' attribute found in the module")
+            # You can also access other functions/variables from the module
+            # my_function = tools_module.my_function
+        except Exception as e:
+            print(f"Error loading tools file: {e}")
+            sys.exit(1)
+
+        print(f"Tools module: {tools_module}")
+ 
+    sys.exit(1)
 
     setup_logging(args.log_level)
     logger = get_logger(__name__)
@@ -231,7 +282,7 @@ if __name__ == "__main__":
     
     if config: 
         logger.info(f"Config path provided: {config}")
-        client = Client(config=config) 
+        client = Client(config=config) # Config to have system_prompt and tools?  
 
     elif backend == "hflocal": 
         client = Client(backend=backend, model=model) 

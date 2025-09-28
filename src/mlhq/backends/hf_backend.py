@@ -2,18 +2,107 @@ from __future__ import annotations
 from typing import Any, Optional, Dict 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, TextIteratorStreamer
-
-
-
+import json 
 
 from .base import Backend
-#from mlhq.logging_config import get_logger
 from mlhq.logging_config import get_logger
-
-# Get logger for this module
 logger = get_logger(__name__)
 
+def get_current_temperature(location: str, unit: str = "celsius"):
+    """Get current temperature at a location.
 
+    Args:
+        location: The location to get the temperature for, in the format "City, State, Country".
+        unit: The unit to return the temperature in. Defaults to "celsius". (choices: ["celsius", "fahrenheit"])
+
+    Returns:
+        the temperature, the location, and the unit in a dict
+    """
+    return {
+        "temperature": 26.1,
+        "location": location,
+        "unit": unit,
+    }
+
+
+def get_temperature_date(location: str, date: str, unit: str = "celsius"):
+    """Get temperature at a location and date.
+
+    Args:
+        location: The location to get the temperature for, in the format "City, State, Country".
+        date: The date to get the temperature for, in the format "Year-Month-Day".
+        unit: The unit to return the temperature in. Defaults to "celsius". (choices: ["celsius", "fahrenheit"])
+
+    Returns:
+        the temperature, the location, the date and the unit in a dict
+    """
+    return {
+        "temperature": 25.9,
+        "location": location,
+        "date": date,
+        "unit": unit,
+    }
+
+
+def get_function_by_name(name):
+    if name == "get_current_temperature":
+        return get_current_temperature
+    if name == "get_temperature_date":
+        return get_temperature_date
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_current_temperature",
+            "description": "Get current temperature at a location.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": 'The location to get the temperature for, in the format "City, State, Country".',
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": ["celsius", "fahrenheit"],
+                        "description": 'The unit to return the temperature in. Defaults to "celsius".',
+                    },
+                },
+                "required": ["location"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_temperature_date",
+            "description": "Get temperature at a location and date.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": 'The location to get the temperature for, in the format "City, State, Country".',
+                    },
+                    "date": {
+                        "type": "string",
+                        "description": 'The date to get the temperature for, in the format "Year-Month-Day".',
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": ["celsius", "fahrenheit"],
+                        "description": 'The unit to return the temperature in. Defaults to "celsius".',
+                    },
+                },
+                "required": ["location", "date"],
+            },
+        },
+    },
+]
+MESSAGES = [
+    {"role": "user",  "content": "What's the temperature in San Francisco now? How about tomorrow? Current Date: 2024-09-30."},
+]
 
 class HFLocalClient:                                                            
     def __init__(self, model_name, api_key=""): 
@@ -36,20 +125,41 @@ class HFLocalClient:
         #self.logger.info(f"Using device={self.device}")       
         print(f"Using device={self.device}")       
 
-    def text_generation(self, prompt, **kwargs):                                
+
+    # NOTE: Because the tools has is separately provided to the appy_chat_template
+    # we need to pass it in as a separate arg here. 
+    def text_generation(self, messages, tools=[], **kwargs):   
+
         if "stop" in kwargs:                                                    
             kwargs["stop_strings"] = kwargs["stop"]                             
             del kwargs["stop"]                                                  
         logger.debug(f"Text-generation kwargs: {kwargs}")                   
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)    
-        #print(f"DEBUG: Tokenized Input: {inputs}")
-        gen_kwargs = {                                                          
-            "input_ids": inputs.input_ids,                                      
-            "attention_mask": inputs.attention_mask,                            
-            "tokenizer": self.tokenizer                                         
-        }                                                                       
-        kwargs.update(gen_kwargs)                                               
-        response = self.model.generate(**kwargs)                                
+
+        #inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)    
+        #inputs = self.tokenizer([inputs], return_tensors="pt")
+        #inputs = self.tokenizer.apply_chat_template(
+        #    messages,
+        #    tools = tools, 
+        #    tokenize=False,
+        #    add_generation_prompt=True
+        #).to(self.device)
+        inputs = tokenizer.apply_chat_template(                                         
+            messages,                                                               
+            tools = tools, 
+            add_generation_prompt=True,                                             
+            tokenize=True,                                                          
+            return_dict=True,                                                       
+            return_tensors="pt",                                                    
+        ).to(self.device)
+
+        #gen_kwargs = {                                                          
+        #    "input_ids": inputs.input_ids.to("mps"),  
+        #    "attention_mask": inputs.attention_mask,                            
+        #    "tokenizer": self.tokenizer                                         
+        #}                                                                       
+        #kwargs.update(gen_kwargs)
+
+        response = self.model.generate(**inputs, **kwargs) 
         #self.logger.info(f"Incoming/Outgoing text: {self.tokenizer.decode(response[0])}")
         return self.tokenizer.decode(response[0][inputs.input_ids.shape[1]:-1]) 
 

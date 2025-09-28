@@ -1,22 +1,47 @@
-import os, sys, argparse
-from rich.panel import Panel
-from rich import print as rprint
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import json
 
-DEFAULT_PROMPT = "Who are you?"
-DEFAULT_MODEL = "Qwen/Qwen3-8B"
+def get_current_temperature(location: str, unit: str = "celsius"):
+    """Get current temperature at a location.
 
-def __handle_cli_args(): 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--prompt", type=str, default=DEFAULT_PROMPT)
-    parser.add_argument("-m", "--model", type=str, default=DEFAULT_MODEL)
-    args = parser.parse_args()
-    return args
+    Args:
+        location: The location to get the temperature for, in the format "City, State, Country".
+        unit: The unit to return the temperature in. Defaults to "celsius". (choices: ["celsius", "fahrenheit"])
+
+    Returns:
+        the temperature, the location, and the unit in a dict
+    """
+    return {
+        "temperature": 26.1,
+        "location": location,
+        "unit": unit,
+    }
 
 
-args = __handle_cli_args()
-model = args.model
-prompt = args.prompt
+def get_temperature_date(location: str, date: str, unit: str = "celsius"):
+    """Get temperature at a location and date.
+
+    Args:
+        location: The location to get the temperature for, in the format "City, State, Country".
+        date: The date to get the temperature for, in the format "Year-Month-Day".
+        unit: The unit to return the temperature in. Defaults to "celsius". (choices: ["celsius", "fahrenheit"])
+
+    Returns:
+        the temperature, the location, the date and the unit in a dict
+    """
+    return {
+        "temperature": 25.9,
+        "location": location,
+        "date": date,
+        "unit": unit,
+    }
+
+
+def get_function_by_name(name):
+    if name == "get_current_temperature":
+        return get_current_temperature
+    if name == "get_temperature_date":
+        return get_temperature_date
+
 TOOLS = [
     {
         "type": "function",
@@ -67,42 +92,3 @@ TOOLS = [
         },
     },
 ]
-system_prompt = "You are a helpful weather agent, YOu will have tools to service users questions about the wether." 
-
-tokenizer = AutoTokenizer.from_pretrained(model)
-model = AutoModelForCausalLM.from_pretrained(model)
-
-messages = [
-    {'role': "system", "content": system_prompt}, 
-    {"role": "user", "content": prompt},
-]
-#messages.extend(TOOLS) # Goona try adding it via tools 
-print("-"*60)
-print("Messages:")
-for i, m in enumerate(messages,start=1): 
-    print(i, m)
-
-inputs = tokenizer.apply_chat_template(
-	messages,
-        tools = TOOLS, 
-	add_generation_prompt=True,
-	tokenize=True,
-	return_dict=True,
-	return_tensors="pt",
-).to(model.device)
-
-print(f"Input Dictionary -- after chat-template applied")
-for k,v in inputs.items(): 
-    print(f"{k} --> {v}")
-print(f"Decoded Input: {tokenizer.decode(inputs.input_ids[0])}")
-
-outputs = model.generate(**inputs, max_new_tokens=128)
-print("-"*60)
-print("Outputs:")
-print(outputs)
-print(outputs.__len__())
-print()
-
-print(tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:]))
-
-print("tokenizer.decode(outputs[0][inputs['input_ids'].shape[-1]:])")
