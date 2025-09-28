@@ -54,6 +54,7 @@ messages = [
     {"role":"user", "content": prompt}
 ]
 
+# ----------------------------------------------------------------------------:
 client = Client(config=config)
 response = client.text_generation(
     messages=messages,
@@ -61,9 +62,11 @@ response = client.text_generation(
     temperature = temperature,
     max_new_tokens = max_new_tokens
 )
-
-
 print(response)
 
 func_list = extract_all_tool_calls(response)
 print(f"Function list: {func_list}")
+for func in func_list: 
+    #Function list: [{'name': 'parse_pdf_to_md', 'arguments': {'pdf_path': '/Users/msbabo/Downloads/ReAct.pdf'}}]
+    fresp = tools_module.get_function_by_name(func['name'])(**func['arguments'])
+    print(fresp)
