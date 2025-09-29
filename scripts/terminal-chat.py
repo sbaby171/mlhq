@@ -3,21 +3,19 @@ from pyfiglet import Figlet
 from datetime import datetime 
 import itertools
 import importlib.util
-import sys
 from pathlib import Path
-            
 from textwrap import dedent
-
 # Add the src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from mlhq import Client
+from mlhq import Client, load_json
 from mlhq.logging_config import setup_logging, get_logger
-
+# TODO: Need the HFLocal to support the chat.completions. Its too complicated 
+#       to support both text_generation and chat
+# ----------------------------------------------------------------------------:
 DEFAULT_MODEL = "qwen/Qwen3-8B"
 DEFAULT_MAX_NEW_TOKENS = 128
 DEFAULT_TOOLS = "/Users/msbabo/code/mlhq/tools/weather_apis.py" 
-
+# ----------------------------------------------------------------------------:
 def load_tools_from_file(file_path):
     """Load a Python file and return the module object."""
     file_path = Path(file_path)
@@ -129,17 +127,20 @@ class TerminalChat:
         print(f"{Colors.BRIGHT_GREEN}│{Colors.RESET} {message}")
         print(f"{Colors.BRIGHT_GREEN}└─{Colors.RESET}")
     
-    def print_ai_message(self, message):
+    def print_ai_message(self, message): 
         timestamp = datetime.now().strftime("%H:%M")
         print(f"\n{Colors.BRIGHT_BLUE}┌─ AI Assistant {Colors.DIM}({timestamp}){Colors.RESET}")
         
-        # Simulate typing effect
+        # Simulate typing effect # TODO: Remvoe this should come from the stream args
         print(f"{Colors.BRIGHT_BLUE}│{Colors.RESET} ", end="", flush=True)
-        for char in message:
-            print(char, end="", flush=True)
-            time.sleep(0.02)  # Adjust speed as needed
-        
+        try: 
+            for char in message:
+                 print(char, end="", flush=True)
+                 time.sleep(0.02)  # Adjust speed as needed
+        except: 
+            print(message)
         print(f"\n{Colors.BRIGHT_BLUE}└─{Colors.RESET}")
+
     
     def get_user_input(self):
         prompt = f"\n{Colors.BRIGHT_YELLOW}▶ {Colors.BRIGHT_WHITE}"
@@ -184,7 +185,7 @@ class TerminalChat:
 """
         print(goodbye)
     
-    def run(self, client, tools=[], max_new_tokens=DEFAULT_MAX_NEW_TOKENS):
+    def run(self, client, model = "", tools=[], max_new_tokens=DEFAULT_MAX_NEW_TOKENS):
         #self.clear_screen()
         self.print_header()
 
@@ -224,15 +225,21 @@ its really bad to get the wrong place. Also, assume Celsius if they don't explic
 
             spinner.start()
             #ai_response = client.text_generation(user_input, tools=tools, max_new_tokens=max_new_tokens)
-            ai_response = client.text_generation(messages, tools=tools, max_new_tokens=max_new_tokens)
+            #ai_response = client.text_generation(messages, tools=tools, max_new_tokens=max_new_tokens)
+            response = client.chat.completions.create(
+                model= model,
+                messages=messages, 
+                tools=tools, 
+                max_new_tokens=max_new_tokens,
+            )
             spinner.stop()
 
-            self.print_ai_message(ai_response)
+            self.print_ai_message(response)
 
             # Store in history
             self.chat_history.append({
                 'user': user_input,
-                'ai': ai_response,
+                'ai': response,
                 'timestamp': datetime.now()
             })
             cycles += 1
@@ -286,12 +293,15 @@ if __name__ == "__main__":
     
     if config: 
         logger.info(f"Config path provided: {config}")
-        client = Client(config=config) # Config to have system_prompt and tools?  
+        config_data = load_json(config)
+        client = Client(config=config_data) 
 
-    elif backend == "hflocal": 
-        client = Client(backend=backend, model=model) 
+    #elif backend == "hflocal": 
+    #    client = Client(backend=backend, model=model) 
 
     chat = TerminalChat()
-    chat.run(client=client, tools = tools_list, max_new_tokens=args.max_new_tokens)
+    #chat.run(client=client, tools = tools_list, max_new_tokens=args.max_new_tokens)
+    chat.run(client=client, model = config_data["model"], tools=tools_list, max_new_tokens=args.max_new_tokens)
     
+# ----------------------------------------------------------------------------:
 

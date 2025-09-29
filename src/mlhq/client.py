@@ -11,6 +11,18 @@ from .backends.ollama_backend import OllamaBackend
 from mlhq.logging_config import get_logger
 logger = get_logger(__name__)
 
+# TODO: From the app side, I should tell users to used ClientConfig
+# from mlhq import Client, ClientConfig
+# config = ClientConfig(config_path)
+# client = Client(config)
+# config.model
+# 
+def load_json(config_path): 
+    config_data = {}                                                           
+    with open(config_path, "r") as f:                                      
+         config_data = json.load(f) 
+    return config_data
+
 @dataclass
 class ClientConfig:
 
