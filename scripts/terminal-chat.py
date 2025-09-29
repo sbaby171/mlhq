@@ -115,14 +115,6 @@ class TerminalChat:
         os.system('cls' if os.name == 'nt' else 'clear')
     
     def print_header(self):
-        #header = f"""
-#{Colors.BRIGHT_CYAN}╔══════════════════════════════════════════════════════════╗
-#║                     🤖 AI CHAT TERMINAL                  ║
-#║                                                          ║
-#║              {Colors.BRIGHT_WHITE}Welcome to your AI Assistant{Colors.BRIGHT_CYAN}                ║
-#╚══════════════════════════════════════════════════════════╝{Colors.RESET}
-#"""
-
         print("─" * 60)
         figlet = Figlet()
         print(figlet.renderText("MLHQ tChat"))

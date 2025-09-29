@@ -1,0 +1,4 @@
+{
+    "backend":"ollama",
+    "model":"qwen3:0.6b"
+}

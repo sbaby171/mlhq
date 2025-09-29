@@ -6,6 +6,7 @@ import json
 from .backends.base import Backend
 from .backends.openai_backend import OpenAIBackend
 from .backends.hf_backend import HFLocalBackend
+from .backends.ollama_backend import OllamaBackend
 
 from mlhq.logging_config import get_logger
 logger = get_logger(__name__)
@@ -23,8 +24,13 @@ class ClientConfig:
         ): 
         config_data = {} 
         if config: 
-            with open(config, 'r') as f:
-                config_data = json.load(f)
+            if type(config) == str: # File path 
+                with open(config, 'r') as f:
+                    config_data = json.load(f)
+            elif type(config) == dict: # Preloaded JSON
+                config_data = config
+            else: 
+                raise ValueError(f"Unsupported type ({type(config)}) for config") 
             logger.debug(f"Config fields: {config_data}")
 
         for k,v in config_data.items(): 
@@ -54,18 +60,20 @@ class Client:
                 base_url=cfg.base_url,
                 organization=cfg.organization,
                 project=cfg.project, )
-            self.responses = self._backend.responses
-            self.chat = self._backend.chat
         elif cfg.backend == "hflocal": 
             self._backend = HFLocalBackend(
                 model = cfg.model,)
+            self.text_generation = self._backend.text_generation
+        elif cfg.backend == "ollama": 
+            self._backend = OllamaBackend()
         else:
             raise ValueError(f"Unsupported backend: {cfg.backend!r}")
         # TODO: note that witin each backend we are remapping the method
         # access up from the backend to the self. we need to normalize 
         # these other simply get the HFFace Local and Infereclient up 
         # to the OpenAI standard. 
-        self.text_generation = self._backend.text_generation
+        self.responses = self._backend.responses
+        self.chat = self._backend.chat
 
     @property
     def config(self) -> ClientConfig:
