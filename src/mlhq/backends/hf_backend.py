@@ -105,7 +105,7 @@ MESSAGES = [
 ]
 
 class HFLocalClient:                                                            
-    def __init__(self, model_name, api_key=""): 
+    def __init__(self, model_name, api_key="", compile_model=False): 
         logger.debug("Initializing HuggingFace backend")
         #self.logger = logging.getLogger(f"{__name__}.HFLocalClient")            
         #self.logger.info(f"Initializing HFLocalClient with model_name={model_name}")
@@ -113,22 +113,28 @@ class HFLocalClient:
         self.model_name = model_name                                            
         self.tokenizer = AutoTokenizer.from_pretrained(model_name,local_files_only=True) 
         self.model = AutoModelForCausalLM.from_pretrained(model_name, local_files_only=True) 
-                                                                                
         if torch.cuda.is_available():                                           
             self.device = "cuda"                                                
         elif getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
             self.device = "mps"                                                 
         else:                                                                   
             self.device = "cpu"                                                 
-                                                                                
+    
+
         self.model = self.model.to(self.device)                                 
+        if compile_model == True: 
+            self.model = torch.compile(self.model)
+   
+
+        
+
         #self.logger.info(f"Using device={self.device}")       
         print(f"Using device={self.device}")       
 
 
     # NOTE: Because the tools has is separately provided to the appy_chat_template
     # we need to pass it in as a separate arg here. 
-    def text_generation(self, messages, tools=[], **kwargs):   
+    def text_generation(self, messages, tools=[], **kwargs):
         func = "HFLocal.text_generation"
 
         if "stop" in kwargs:                                                    

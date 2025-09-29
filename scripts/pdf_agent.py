@@ -5,24 +5,6 @@ from mlhq.tooling import load_tools_from_file, extract_tool_calls
 import re
 import json
 # ----------------------------------------------------------------------------:
-#def extract_tool_calls(text):
-#    """Extract all tool_call sections from the text."""
-#    pattern = r'<tool_call>\s*(.*?)\s*</tool_call>'
-#    matches = re.findall(pattern, text, re.DOTALL)
-#    
-#    tool_calls = []
-#    for match in matches:
-#        try:
-#            tool_call_data = json.loads(match.strip())
-#            tool_calls.append(tool_call_data)
-#        except json.JSONDecodeError as e:
-#            print(f"Error parsing JSON: {e}")
-#            tool_calls.append(match.strip())  # Keep raw content if parsing fails
-#    
-#    return tool_calls
-# ----------------------------------------------------------------------------:
-
-
 # Configuration stuff
 pdf_path = "/Users/msbabo/Downloads/ReAct.pdf"
 config = "/Users/msbabo/code/mlhq/scripts/configs/hflocal_Qwen3_8B__basic.json"
@@ -33,7 +15,6 @@ prompt = f"Can you convert this PDF to markdown: '{pdf_path}'?"
 # Generation args
 temperature = 0.6
 max_new_tokens = 512
-
 # ----------------------------------------------------------------------------:
 tools_list = None                                                           
 tools_module = None                                                         
@@ -53,7 +34,6 @@ messages = [
     {"role":"system", "content": sys_p},
     {"role":"user", "content": prompt}
 ]
-
 # ----------------------------------------------------------------------------:
 client = Client(config=config)
 response = client.text_generation(
