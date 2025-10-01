@@ -141,7 +141,31 @@ class _OllamaChatCompletions(ChatCompletionsAPI):
         self._client = client
     
     def create(self, **kwargs: Any) -> MLHQResponse:
-        raw = self._client.chat(**kwargs)
+        print(f"kwargs = {type(kwargs)}")
+        print(f"kwargs = {kwargs}")
+        options = {} 
+        messages = []
+        model = ""
+        tools = []
+        if "max_new_tokens" in kwargs: 
+            options["num_predict"] = kwargs["max_new_tokens"]
+        if "messages" in kwargs: 
+            messages  = kwargs["messages"]
+        if "model" in kwargs: 
+            model = kwargs["model"]
+        if "tools" in kwargs: 
+            tools = kwargs["tools"]
+        print(f"DEBUG: model = {model}")
+        print(f"DEBUG: messages = {messages}")
+        print(f"DEBUG: tools = {tools}")
+        print(f"DEBUG: options = {options}")
+
+        try:
+            #raw = self._client.chat(**kwargs)
+            raw = self._client.chat(model = model, messages=messages, options=options, tools=tools)
+            #raw = self._client.chat(options = kwargs)
+        except Exception as e: 
+            raise RuntimeError(f"{e}")
         text = _extract_ollama_chat_text(raw)
         meta = _extract_ollama_common(raw)
         
